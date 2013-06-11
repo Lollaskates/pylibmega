@@ -27,7 +27,7 @@ This is a work in progress.
 
 ## Tests
 
-    Test .py files can be found in tests.py, run these to ensure Mega.py is working 100%.
+    Test .py files can be found in tests.py, run these to ensure pylibmega.py is working 100%.
 
 ## Contribute
 
