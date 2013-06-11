@@ -42,14 +42,14 @@ class Mega_Processor(threading.Thread):
             self.processortype = 'download-processor'
             self.inqueue = filedownloadqueue
             self.downloadqueue = Queue.Queue()
-            self.decryptqueue = Queue.Queue()
-            self.writequeue = Queue.Queue()
+            self.decryptqueue = Queue.Queue(100)
+            self.writequeue = Queue.Queue(100)
         elif fileuploadqueue:
             self.processortype = 'upload-processor'
             self.inqueue = fileuploadqueue
             self.uploadqueue = Queue.Queue()
             self.encryptqueue = Queue.Queue(100) #tentatively max of 100 entries (100*3) = 300MB
-            self.readqueue = Queue.Queue()
+            self.readqueue = Queue.Queue(100)
         else:
             print 'No processor type specified. Bailing out. (__Mega_Processor.__init__)'
             self.join()

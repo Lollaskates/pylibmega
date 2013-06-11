@@ -14,6 +14,7 @@ import shutil
 import datetime
 import os
 
+print 'initializing environment...'
 #use 1MB chunks (standard mega format)
 chunksize = 0x1000000
 filedata = os.urandom(chunksize)
