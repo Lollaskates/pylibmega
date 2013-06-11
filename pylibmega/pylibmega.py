@@ -41,9 +41,9 @@ class Mega_Processor(threading.Thread):
         if filedownloadqueue:
             self.processortype = 'download-processor'
             self.inqueue = filedownloadqueue
-            self.downloadqueue = Queue.Queue()
+            self.downloadqueue = Queue.Queue(100)
             self.decryptqueue = Queue.Queue(100)
-            self.writequeue = Queue.Queue(100)
+            self.writequeue = Queue.Queue()
         elif fileuploadqueue:
             self.processortype = 'upload-processor'
             self.inqueue = fileuploadqueue
@@ -306,6 +306,7 @@ class Mega_Worker(threading.Thread):
                     decrypt_request = self.inqueue.get()
                     if 'meta_mac' in decrypt_request:
                         self.args = decrypt_request
+                        self.args['bytesprocessed'] = 0
                         self.args['targetoffset'] = 0
                         self.args['k_str'] = a32_to_str(self.args['k'])
                         self.args['counter'] = Counter.new(128, initial_value=((self.args['iv'][0] << 32) + self.args['iv'][1]) << 64)
@@ -344,6 +345,7 @@ class Mega_Worker(threading.Thread):
                     encrypt_request = self.inqueue.get()
                     if 'ul_url' in encrypt_request:
                         self.args = encrypt_request
+                        self.args['bytesprocessed'] = 0
                         self.args['targetoffset'] = 0
                     elif 'finished_upload' in encrypt_request:
                         self.args['completion_file_handle'] = encrypt_request['completion_file_handle']
@@ -442,6 +444,7 @@ class Mega_Worker(threading.Thread):
         if len(block) % 16:
             block += '\0' * (16 - (len(block) % 16))
         self.args['mac_str'] = self.args['mac_encryptor'].encrypt(self.args['encryptor'].encrypt(block))
+        self.args['bytesprocessed'] += decrypt_request['chunk_size']
         return True
 
     def __encrypt(self,encrypt_request):
@@ -463,6 +466,7 @@ class Mega_Worker(threading.Thread):
             self.args['mac_str'] = self.args['mac_encryptor'].encrypt(self.args['encryptor'].encrypt(block))
             encrypt_request['chunks'][a]['data'] = self.args['aes'].encrypt(encrypt_request['chunks'][a]['data'])
             self.args['targetoffset'] += encrypt_request['chunks'][a]['chunk_stats'][1] #size
+            self.args['bytesprocessed'] += encrypt_request['chunks'][a]['chunk_stats'][1]
         self.outqueue.put({'chunks': encrypt_request['chunks'],'ul_url': self.args['ul_url'], 'file_size': self.args['file_size'], 'file_name': self.args['file_name']})
         return True
     
@@ -946,6 +950,7 @@ class Mega(object):
     def download_status(self):
         statusobj = {}
         statusobj['downloadedbytes'] = sum([x.args['bytesprocessed'] for x in self.processors['download'].workers['downloader']])
+        statusobj['decryptedbytes'] = sum([x.args['bytesprocessed'] for x in self.processors['download'].workers['decrypter']])
         statusobj['writtenbytes'] = self.processors['download'].workers['writer'][0].args['total_processed']
         statusobj['totalbytes'] = self.processors['download'].currentfile['file_size']
         return statusobj
@@ -953,6 +958,7 @@ class Mega(object):
     def upload_status(self):
         statusobj = {}
         statusobj['uploadedbytes'] = sum([x.args['bytesprocessed'] for x in self.processors['upload'].workers['uploader']])
+        statusobj['encryptedbytes'] = sum([x.args['bytesprocessed'] for x in self.processors['upload'].workers['encrypter']])
         statusobj['readbytes'] = self.processors['upload'].workers['reader'][0].args['total_processed']
         statusobj['totalbytes'] = self.processors['upload'].currentfile['file_size']
         return statusobj
