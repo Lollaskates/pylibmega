@@ -48,7 +48,6 @@ def encrypt_test():
 
 def test():    
     start = datetime.datetime.now()
-    time.sleep(1)
     while True:
         encrypt_test()
         os.system(['clear','cls'][os.name == 'nt'])
