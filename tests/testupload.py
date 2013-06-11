@@ -19,7 +19,7 @@ def test():
     print 'getting details'
     details = m.get_user()
     
-    mega.upload('test3.rar')
+    mega.upload('test7.rar')
     start = datetime.datetime.now()
     time.sleep(1)
     stats = mega.upload_status()
@@ -31,7 +31,9 @@ def test():
         stats = mega.upload_status()
         urate = sizeof_fmt(int(stats['uploadedbytes']/timesecs))
         rrate = sizeof_fmt(int(stats['readbytes']/timesecs))
-        print '(u)percent:'+str(float(stats['uploadedbytes'])/stats['totalbytes']*100)+'%\n(u)rate:'+str(urate)+'/s\n(r)percent:'+str(float(stats['readbytes'])/stats['totalbytes']*100)+'%\n(r)rate:'+str(rrate)+'/s'
+        erate = sizeof_fmt(int(stats['encryptedbytes']/timesecs))
+        
+        print 'Upload: '+str(float(stats['uploadedbytes'])/stats['totalbytes']*100)+'% ('+str(urate)+'/s)\nEncrypt: '+str(float(stats['encryptedbytes'])/stats['totalbytes']*100)+'% ('+str(erate)+'/s)\n'+'Read: '+str(float(stats['readbytes'])/stats['totalbytes']*100)+'% ('+str(rrate)+'/s)'
         time.sleep(1)
 
 

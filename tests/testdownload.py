@@ -19,6 +19,8 @@ def test():
     print 'getting details'
     details = m.get_user()
     
+    mega.download_url()
+    
     start = datetime.datetime.now()
     time.sleep(1)
     stats = mega.download_status()
@@ -28,8 +30,9 @@ def test():
         timesecs = totaltime.total_seconds()
         stats = mega.download_status()
         drate = sizeof_fmt(int(stats['downloadedbytes']/timesecs))
+        derate = sizeof_fmt(int(stats['decryptedbytes']/timesecs))
         wrate = sizeof_fmt(int(stats['writtenbytes']/timesecs))
-        print '(d)percent:'+str(float(stats['downloadedbytes'])/stats['totalbytes']*100)+'%\n(d)rate:'+str(drate)+'/s\n(w)percent:'+str(float(stats['writtenbytes'])/stats['totalbytes']*100)+'%\n(w)rate:'+str(wrate)+'/s'
+        print 'Download: '+str(float(stats['downloadedbytes'])/stats['totalbytes']*100)+'% ('+str(drate)+'/s)\nDecrypt: '+str(float(stats['decryptedbytes'])/stats['totalbytes']*100)+'% ('+str(derate)+'/s)\n'+'Write: '+str(float(stats['writtenbytes'])/stats['totalbytes']*100)+'% ('+str(wrate)+'/s)'
         time.sleep(1)
 
 
