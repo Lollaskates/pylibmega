@@ -28,21 +28,21 @@ aes = AES.new(k_str, AES.MODE_CTR, counter=count)
 mac_str = '\0' * 16
 mac_encryptor = AES.new(k_str, AES.MODE_CBC, mac_str)
 iv_str = a32_to_str([ul_key[4], ul_key[5], ul_key[4], ul_key[5]])
-testcount=0
+
 
 
 def encrypt_test():
-    global chunksize, filedata, total_iterations, ul_key, k_str, count, aes, mac_str, mac_encryptor, iv_str,testcount
+    global chunksize, filedata, total_iterations, ul_key, k_str, count, aes, mac_str, mac_encryptor, iv_str
     
-    #encryptor = AES.new(k_str, AES.MODE_CBC, iv_str)
-    #for i in xrange(0, len(filedata)-16, 16):
-    #    block = filedata[i:i + 16]
-    #    encryptor.encrypt(block)
-
-    #block = filedata[i:i + 16]
-    #if len(block) % 16:
-    #    block += '\0' * (16 - len(block) % 16)
-    #mac_str = mac_encryptor.encrypt(encryptor.encrypt(block))
+    encryptor = AES.new(k_str, AES.MODE_CBC, iv_str)
+    for i in xrange(0, len(filedata)-16, 16):
+        block = filedata[i:i + 16]
+        encryptor.encrypt(block)
+        
+    block = filedata[i:i + 16]
+    if len(block) % 16:
+        block += '\0' * (16 - len(block) % 16)
+    mac_str = mac_encryptor.encrypt(encryptor.encrypt(block))
     filedata = aes.encrypt(filedata)
     total_iterations += 1
     return True

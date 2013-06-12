@@ -60,7 +60,7 @@ class Mega_Processor(threading.Thread):
         workers = {}
         if self.processortype == 'download-processor':
             dlers = []
-            for i in range(maxworkers):
+            for i in xrange(maxworkers):
                 d = Mega_Worker(downloadqueue=self.downloadqueue,decryptqueue=self.decryptqueue,messagequeue=self.outqueue,errorqueue=self.errqueue,megaobj=self.parentmegaobj)
                 d.setDaemon(True)
                 d.start()
@@ -84,7 +84,7 @@ class Mega_Processor(threading.Thread):
                       }
         elif self.processortype == 'upload-processor':
             ulers = []
-            for i in range(maxworkers):
+            for i in xrange(maxworkers):
                 u = Mega_Worker(uploadqueue=self.uploadqueue,messagequeue=self.outqueue,altqueue=self.encryptqueue,errorqueue=self.errqueue,megaobj=self.parentmegaobj)
                 u.setDaemon(True)
                 u.start()
@@ -429,7 +429,7 @@ class Mega_Worker(threading.Thread):
                            'data': chunk})
         self.args['encryptor'] = AES.new(self.args['k_str'], AES.MODE_CBC, self.args['iv_str'])
         
-        for i in range(0, len(chunk)-16, 16):
+        for i in xrange(0, len(chunk)-16, 16):
             block = chunk[i:i + 16]
             self.args['encryptor'].encrypt(block)
             
@@ -448,9 +448,9 @@ class Mega_Worker(threading.Thread):
         return True
 
     def __encrypt(self,encrypt_request):
-        for a in range(0,len(encrypt_request['chunks'])):
+        for a in xrange(0,len(encrypt_request['chunks'])):
             self.args['encryptor'] = AES.new(self.args['k_str'], AES.MODE_CBC, self.args['iv_str'])
-            for i in range(0, len(encrypt_request['chunks'][a]['data'])-16, 16):
+            for i in xrange(0, len(encrypt_request['chunks'][a]['data'])-16, 16):
                 block = encrypt_request['chunks'][a]['data'][i:i + 16]
                 self.args['encryptor'].encrypt(block)
                 
@@ -555,7 +555,7 @@ class Mega(object):
             private_key = a32_to_str(rsa_private_key)
             self.rsa_private_key = [0, 0, 0, 0]
 
-            for i in range(4):
+            for i in xrange(4):
                 l = ((ord(private_key[0]) * 256 + ord(private_key[1]) + 7) / 8) + 2
                 self.rsa_private_key[i] = mpi_to_int(private_key[:l])
                 private_key = private_key[l:]
@@ -978,7 +978,7 @@ class Mega(object):
         ul_url = self.api_request({'a': 'u', 's': file_size})['p']
 
         #generate random aes key (128) for file
-        ul_key = [random.randint(0, 0xFFFFFFFF) for _ in range(6)]
+        ul_key = [random.randint(0, 0xFFFFFFFF) for _ in xrange(6)]
         k_str = a32_to_str(ul_key[:4])
         count = Counter.new(128, initial_value=((ul_key[4] << 32) + ul_key[5]) << 64)
         aes = AES.new(k_str, AES.MODE_CTR, counter=count)
@@ -1030,7 +1030,7 @@ class Mega(object):
             dest = self.root_id
 
         #generate random aes key (128) for folder
-        ul_key = [random.randint(0, 0xFFFFFFFF) for _ in range(6)]
+        ul_key = [random.randint(0, 0xFFFFFFFF) for _ in xrange(6)]
 
         #encrypt attribs
         attribs = {'n': name}
