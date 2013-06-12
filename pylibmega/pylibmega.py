@@ -173,6 +173,7 @@ class Mega_Processor(threading.Thread):
                                             'iv_str': self.currentfile['iv_str'],
                                             'attribs': self.currentfile['attribs'],
                                             'master_key': self.currentfile['master_key'],
+                                            'noverify': self.currentfile['noverify']
                                         })
                     
                     #prepare reader (open for reading)
@@ -451,21 +452,22 @@ class Mega_Worker(threading.Thread):
 
     def __encrypt(self,encrypt_request):
         for a in xrange(0,len(encrypt_request['chunks'])):
-            self.args['encryptor'] = AES.new(self.args['k_str'], AES.MODE_CBC, self.args['iv_str'])
-            for i in xrange(0, len(encrypt_request['chunks'][a]['data'])-16, 16):
+            if self.args['noverify'] != True:
+                self.args['encryptor'] = AES.new(self.args['k_str'], AES.MODE_CBC, self.args['iv_str'])
+                for i in xrange(0, len(encrypt_request['chunks'][a]['data'])-16, 16):
+                    block = encrypt_request['chunks'][a]['data'][i:i + 16]
+                    self.args['encryptor'].encrypt(block)
+                
+                #fix for files under 16 bytes failing
+                if self.args['file_size'] > 16:
+                    i += 16
+                else:
+                    i = 0
+                
                 block = encrypt_request['chunks'][a]['data'][i:i + 16]
-                self.args['encryptor'].encrypt(block)
-                
-            #fix for files under 16 bytes failing
-            if self.args['file_size'] > 16:
-                i += 16
-            else:
-                i = 0
-                
-            block = encrypt_request['chunks'][a]['data'][i:i + 16]
-            if len(block) % 16:
-                block += '\0' * (16 - len(block) % 16)
-            self.args['mac_str'] = self.args['mac_encryptor'].encrypt(self.args['encryptor'].encrypt(block))
+                if len(block) % 16:
+                    block += '\0' * (16 - len(block) % 16)
+                self.args['mac_str'] = self.args['mac_encryptor'].encrypt(self.args['encryptor'].encrypt(block))
             encrypt_request['chunks'][a]['data'] = self.args['aes'].encrypt(encrypt_request['chunks'][a]['data'])
             self.args['targetoffset'] += encrypt_request['chunks'][a]['chunk_stats'][1] #size
             self.args['bytesprocessed'] += encrypt_request['chunks'][a]['chunk_stats'][1]
@@ -967,7 +969,7 @@ class Mega(object):
         return statusobj
     ##########################################################################
     # UPLOAD
-    def upload(self, filename, dest=None, dest_filename=None):
+    def upload(self, filename, dest=None, dest_filename=None, noverify=False):
         #determine storage node
         if dest is None:
             #if none set, upload to cloud drive node
@@ -1017,7 +1019,8 @@ class Mega(object):
             'mac_encryptor': mac_encryptor,
             'iv_str': iv_str,
             'attribs': attribs,
-            'master_key': self.master_key
+            'master_key': self.master_key,
+            'noverify': noverify
                 }
         
         self.fileuploadqueue.put(uploadobj)
