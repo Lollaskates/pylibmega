@@ -19,7 +19,7 @@ def test():
     print 'getting details'
     details = m.get_user()
     
-    mega.download_url()
+    mega.download_url('')
     
     start = datetime.datetime.now()
     time.sleep(1)
