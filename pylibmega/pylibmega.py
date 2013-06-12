@@ -122,6 +122,7 @@ class Mega_Processor(threading.Thread):
                                            'iv': self.currentfile['iv'],
                                            'meta_mac': self.currentfile['meta_mac'],
                                            'file_size': self.currentfile['file_size'],
+                                           'noverify': self.currentfile['noverify']
                                         })
                     
                     #prepare writer (open for writing)
@@ -171,7 +172,7 @@ class Mega_Processor(threading.Thread):
                                             'mac_encryptor': self.currentfile['mac_encryptor'],
                                             'iv_str': self.currentfile['iv_str'],
                                             'attribs': self.currentfile['attribs'],
-                                            'master_key': self.currentfile['master_key']
+                                            'master_key': self.currentfile['master_key'],
                                         })
                     
                     #prepare reader (open for reading)
@@ -331,7 +332,7 @@ class Mega_Worker(threading.Thread):
                             
                         if self.args['targetoffset'] == self.args['file_size']: #if decryption is completed, check file mac for successful download
                             self.args['file_mac'] = str_to_a32(self.args['mac_str'])
-                            if (self.args['file_mac'][0] ^ self.args['file_mac'][1], self.args['file_mac'][2] ^ self.args['file_mac'][3]) == self.args['meta_mac']:
+                            if ((self.args['file_mac'][0] ^ self.args['file_mac'][1], self.args['file_mac'][2] ^ self.args['file_mac'][3]) == self.args['meta_mac']) or (self.args['noverify'] == True):
                                 complete_code = True
                             else:
                                 complete_code = False
@@ -427,23 +428,24 @@ class Mega_Worker(threading.Thread):
         chunk = self.args['aes'].decrypt(decrypt_request['data'])
         self.outqueue.put({'chunk_size': decrypt_request['chunk_size'],
                            'data': chunk})
-        self.args['encryptor'] = AES.new(self.args['k_str'], AES.MODE_CBC, self.args['iv_str'])
+        if self.args['noverify'] != True:
+            self.args['encryptor'] = AES.new(self.args['k_str'], AES.MODE_CBC, self.args['iv_str'])
         
-        for i in xrange(0, len(chunk)-16, 16):
-            block = chunk[i:i + 16]
-            self.args['encryptor'].encrypt(block)
+            for i in xrange(0, len(chunk)-16, 16):
+                block = chunk[i:i + 16]
+                self.args['encryptor'].encrypt(block)
             
-        #fix for files under 16 bytes failing
-        if self.args['file_size'] > 16:
-            i += 16
-        else:
-            i = 0
+            #fix for files under 16 bytes failing
+            if self.args['file_size'] > 16:
+                i += 16
+            else:
+                i = 0
         
-        #buffer to nearest boundary to hash
-        block = chunk[i:i + 16]
-        if len(block) % 16:
-            block += '\0' * (16 - (len(block) % 16))
-        self.args['mac_str'] = self.args['mac_encryptor'].encrypt(self.args['encryptor'].encrypt(block))
+            #buffer to nearest boundary to hash
+            block = chunk[i:i + 16]
+            if len(block) % 16:
+                block += '\0' * (16 - (len(block) % 16))
+            self.args['mac_str'] = self.args['mac_encryptor'].encrypt(self.args['encryptor'].encrypt(block))
         self.args['bytesprocessed'] += decrypt_request['chunk_size']
         return True
 
@@ -879,22 +881,22 @@ class Mega(object):
 
     ##########################################################################
     # DOWNLOAD
-    def download(self, file, dest_path=None, dest_filename=None):
+    def download(self, file, dest_path=None, dest_filename=None, noverify=False):
         """
         Download a file by it's file object
         """
-        self.download_file(None, None, file=file[1], dest_path=dest_path, dest_filename=dest_filename, is_public=False)
+        self.download_file(None, None, file=file[1], dest_path=dest_path, dest_filename=dest_filename, noverify=noverify, is_public=False)
 
-    def download_url(self, url, dest_path=None, dest_filename=None):
+    def download_url(self, url, dest_path=None, dest_filename=None, noverify=False):
         """
         Download a file by it's public url
         """
         path = self.parse_url(url).split('!')
         file_id = path[0]
         file_key = path[1]
-        self.download_file(file_id, file_key, dest_path, dest_filename, is_public=True)
+        self.download_file(file_id, file_key, dest_path, dest_filename, noverify=noverify, is_public=True)
 
-    def download_file(self, file_handle, file_key, dest_path=None, dest_filename=None, is_public=False, file=None):
+    def download_file(self, file_handle, file_key, dest_path=None, dest_filename=None, is_public=False, noverify=False, file=None):
         ##INITIALIZE
         if file is None :
             if is_public:
@@ -943,7 +945,8 @@ class Mega(object):
             'file_size': file_size,
             'file_name': file_name,
             'dest_path': dest_path,
-            'temp_output_file': temp_output_file
+            'temp_output_file': temp_output_file,
+            'noverify': noverify
         }
         self.filedownloadqueue.put(downloadobj)
 
